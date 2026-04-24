@@ -1,0 +1,104 @@
+.sr-root {
+  min-height: 100vh;
+  background: #0f0e0b;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem 6rem;
+  position: relative;
+  overflow: hidden;
+}
+.sr-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.12;
+  pointer-events: none;
+}
+.sr-blob-1 {
+  width: 500px; height: 500px;
+  background: #FF5722;
+  top: -150px; right: -100px;
+}
+.sr-blob-2 {
+  width: 400px; height: 400px;
+  background: #6b8f5e;
+  bottom: -100px; left: -100px;
+}
+.sr-heading {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+  text-align: center;
+  margin: 0 0 1rem;
+  z-index: 1;
+  line-height: 1.2;
+}
+.sr-sub {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.78);
+  text-align: center;
+  margin: 0 0 3rem;
+  z-index: 1;
+  line-height: 1.65;
+}
+.sr-cards {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  z-index: 1;
+}
+.sr-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px;
+  padding: 2rem;
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  cursor: pointer;
+  transition: border-color 0.3s, transform 0.3s, background 0.3s;
+  text-align: center;
+  font: inherit;
+}
+.sr-card:hover,
+.sr-card:focus-visible {
+  border-color: rgba(255,87,34,0.5);
+  transform: translateY(-6px);
+  background: rgba(255,87,34,0.06);
+  outline: 2px solid rgba(255,87,34,0.5);
+  outline-offset: 2px;
+}
+.sr-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+}
+.sr-icon-individual { background: rgba(107,143,94,0.2); }
+.sr-icon-restaurant { background: rgba(255,87,34,0.2); }
+.sr-icon-ngo { background: rgba(200,169,110,0.2); }
+.sr-card-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  margin: 0;
+  line-height: 1.4;
+}
+.sr-card-desc {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.78);
+  line-height: 1.65;
+  margin: 0;
+}
