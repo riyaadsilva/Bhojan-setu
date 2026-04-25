@@ -15,7 +15,7 @@ import { attachUserIfPresent, protect, requireRole } from "../middleware/authMid
 const router = Router();
 
 router.get("/", getDonations);
-router.get("/mine", protect, requireRole("individual", "restaurant"), getMyDonations);
+router.get("/mine", protect, requireRole("individual", "restaurant", "ngo"), getMyDonations);
 router.post("/", attachUserIfPresent, createDonation);
 router.get("/:id", getDonationById);
 router.post("/:id/accept", protect, requireRole("ngo"), acceptDonationRequest);
