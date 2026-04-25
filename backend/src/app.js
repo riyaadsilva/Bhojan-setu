@@ -10,7 +10,7 @@ const app = express();
 
 app.use(cors({
   origin: [
-    "https://bhojan-setu-kappa.vercel.app/"
+    "https://bhojan-setu-kappa.vercel.app"
   ],
   credentials: true
 }));
