@@ -1,6 +1,6 @@
+import { useEffect, useState } from "react";
 import AppNav from "../components/AppNav";
-import { useUser } from "../contexts/UserContext";
-import { rateDonationApi } from "../services/api";
+import { fetchMyDonations, rateDonationApi } from "../services/api";
 
 const card = {
   background: "rgba(255,255,255,0.03)",
@@ -18,15 +18,28 @@ function Star({ filled, onClick }: { filled: boolean; onClick: () => void }) {
 }
 
 export default function ConnectedRestaurants() {
-  const { donations, updateDonation } = useUser();
-  const accepted = donations.filter((d) => d.status === "accepted");
+  const [donations, setDonations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchMyDonations()
+      .then((data) => {
+        setDonations(data || []);
+      })
+      .catch(() => {})
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
 
   const rate = (id: string, rating: number) => {
-    updateDonation(id, { rating });
+    setDonations((prev) => prev.map((d) => (d._id === id || d.id === id ? { ...d, rating } : d)));
     rateDonationApi(id, rating).catch(() => {
-      // Optimistic local ratings keep the demo flow usable when a seeded local item is not in MongoDB.
+      // Optimistic local ratings keep the demo flow usable.
     });
   };
+
+  const accepted = donations;
 
   return (
     <div className="bs-root">
@@ -43,14 +56,18 @@ export default function ConnectedRestaurants() {
           {accepted.length} donor{accepted.length !== 1 ? "s" : ""} have shared food with you. Rate them to build trust in the network.
         </p>
 
-        {accepted.length === 0 ? (
+        {loading ? (
+          <div style={{ ...card, textAlign: "center", padding: "4rem" }}>
+            <p style={{ color: "rgba(255, 255, 255, 0.78)", fontSize: "1rem", lineHeight: 1.65 }}>Loading connections...</p>
+          </div>
+        ) : accepted.length === 0 ? (
           <div style={{ ...card, textAlign: "center", padding: "4rem" }}>
             <p style={{ color: "rgba(255, 255, 255, 0.78)", fontSize: "1rem", lineHeight: 1.65 }}>You haven't accepted any pickups yet. Visit the home page to review requests.</p>
           </div>
         ) : (
           <div style={{ display: "grid", gap: 16 }}>
             {accepted.map((d) => (
-              <div key={d.id} style={{ ...card, display: "grid", gridTemplateColumns: "120px 1fr auto", gap: 20, alignItems: "center" }}>
+              <div key={d._id || d.id} style={{ ...card, display: "grid", gridTemplateColumns: "120px 1fr auto", gap: 20, alignItems: "center" }}>
                 <img src={d.photo || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300"}
                   alt={d.donorName}
                   style={{ width: 120, height: 120, objectFit: "cover", borderRadius: 12 }} />
@@ -76,7 +93,7 @@ export default function ConnectedRestaurants() {
                   </div>
                   <div>
                     {[1, 2, 3, 4, 5].map((n) => (
-                      <Star key={n} filled={(d.rating || 0) >= n} onClick={() => rate(d.id, n)} />
+                      <Star key={n} filled={(d.rating || 0) >= n} onClick={() => rate(d._id || d.id, n)} />
                     ))}
                   </div>
                 </div>

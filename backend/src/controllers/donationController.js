@@ -57,14 +57,19 @@ export const getMyDonations = asyncHandler(async (req, res) => {
 
   const donorPhone = profile.phone;
 
-  const filter = {
-    donorType: role === "restaurant" ? "restaurant" : role === "individual" ? "individual" : "__none__",
-    $or: [
-      { donor: req.user._id },
-      ...(donorName ? [{ donorName }] : []),
-      ...(donorPhone ? [{ donorPhone }] : []),
-    ],
-  };
+  let filter = {};
+  if (role === "ngo") {
+    filter = { acceptedByNgo: req.user._id };
+  } else {
+    filter = {
+      donorType: role === "restaurant" ? "restaurant" : role === "individual" ? "individual" : "__none__",
+      $or: [
+        { donor: req.user._id },
+        ...(donorName ? [{ donorName }] : []),
+        ...(donorPhone ? [{ donorPhone }] : []),
+      ],
+    };
+  }
 
   logger.debug("donations:mine", { requestId: req.requestId, userId: req.user._id, role, donorName, donorPhone });
 
