@@ -110,7 +110,10 @@ export default function NGORequests() {
 
     fetchDonations()
       .then((data) => {
-        if (!cancelled) setRequests(data.map(normalizeDonation));
+        if (!cancelled) {
+          const filtered = data.filter((d: any) => !d.acceptedByNgo || (d.acceptedByNgo?._id || d.acceptedByNgo?.id || d.acceptedByNgo) === profile.id);
+          setRequests(filtered.map(normalizeDonation));
+        }
       })
       .catch(() => {
         if (!cancelled) {

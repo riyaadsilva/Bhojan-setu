@@ -92,8 +92,8 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {/* INDIVIDUAL: donation form */}
-      {currentRole === "individual" && <IndividualDonateForm />}
+      {/* INDIVIDUAL/RESTAURANT: donation form */}
+      {(currentRole === "individual" || currentRole === "restaurant") && <IndividualDonateForm />}
 
       {/* RESTAURANT: food log only (chart moved to /analytics) */}
       {currentRole === "restaurant" && <FoodLogSection />}

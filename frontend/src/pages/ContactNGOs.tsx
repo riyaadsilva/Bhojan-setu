@@ -208,7 +208,7 @@ export default function ContactNGOs() {
           NGOs Available For Pickup
         </h1>
         <p style={{ color: "rgba(255, 255, 255, 0.78)", fontFamily: "'DM Sans', sans-serif", marginBottom: 20, fontSize: "1rem", lineHeight: 1.65 }}>
-          {filtered.length} verified NGOs sorted by pickup proximity from {latestDonation?.pickupAddress || latestDonation?.donorLocation || "your selected donation"}.
+          {filtered.length} verified NGOs sorted by pickup proximity from {latestDonation?.pickupAddress || latestDonation?.donorLocation || profile.location || profile.address || "your location"}.
         </p>
 
         <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.1fr) minmax(360px, 0.9fr)", gap: 22, alignItems: "stretch" }}>

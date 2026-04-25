@@ -187,7 +187,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         setState((s) => ({
           ...s,
           role: user.role,
-          profile: user.profile || {},
+          profile: { ...user.profile, id: user.id, email: user.email },
           isLoggedIn: true,
           authReady: true,
         }));
@@ -219,7 +219,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setState((s) => ({
         ...s,
         role: payload.user.role,
-        profile: payload.user.profile || profile,
+        profile: { ...payload.user.profile, id: payload.user.id, email: payload.user.email } || { ...profile, id: payload.user.id, email: payload.user.email },
         isLoggedIn: true,
         authReady: true,
       }));
