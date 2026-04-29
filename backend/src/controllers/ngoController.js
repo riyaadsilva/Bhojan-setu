@@ -38,7 +38,10 @@ export const getNGOs = asyncHandler(async (req, res) => {
   logger.debug("ngos:list", { requestId: req.requestId, filter, lat, lng, radiusKm, quantityKg, sort });
 
   let ngos;
-  if (lat !== undefined && lng !== undefined) {
+  // Use $geoNear only if radiusKm is specifically provided. 
+  // Otherwise, use standard find() and let the frontend calculate exact distances.
+  // This prevents NGOs without coordinates from being entirely hidden when searching "Any distance".
+  if (lat !== undefined && lng !== undefined && radiusKm !== undefined) {
     const pipeline = [
       {
         $geoNear: {

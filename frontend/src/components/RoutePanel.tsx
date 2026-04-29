@@ -48,15 +48,16 @@ export default function RoutePanel({ pickup, ngo, routeInfo, onGetRoute }: Route
       </p>
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, color: "#f5f0eb", fontFamily: "'DM Sans', sans-serif", fontSize: "0.86rem", marginBottom: 14 }}>
-        <span>{routeInfo?.distanceText || (ngo.distanceKm ? `${ngo.distanceKm.toFixed(1)} km` : "Distance pending")}</span>
-        <span style={{ color: "#a89b85" }}>·</span>
+        {routeInfo?.distanceText || ngo.distanceKm ? (
+          <>
+            <span>{routeInfo?.distanceText || `${ngo.distanceKm?.toFixed(1)} km`}</span>
+            <span style={{ color: "#a89b85" }}>·</span>
+          </>
+        ) : null}
         <span>{routeInfo?.durationText || ngo.estimatedTravelTime || "ETA after route"}</span>
       </div>
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-        <button style={{ ...action, opacity: canRoute ? 1 : 0.6 }} disabled={!canRoute} onClick={onGetRoute}>
-          Get Route
-        </button>
         <a
           style={{ ...ghost, pointerEvents: canRoute ? "auto" : "none", opacity: canRoute ? 1 : 0.6 }}
           href={googleMapsRouteUrl(pickup, destination)}

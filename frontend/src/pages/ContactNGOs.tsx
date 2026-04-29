@@ -5,7 +5,7 @@ import RoutePanel from "../components/RoutePanel";
 import { useUser } from "../contexts/UserContext";
 import { NGOS, NGO } from "../data/ngos";
 import { createContactRequest, fetchNearbyNGOs } from "../services/api";
-import { estimateEta, haversineKm, parseQuantityKg, RouteInfo } from "../services/maps";
+import { estimateEta, haversineKm, RouteInfo } from "../services/maps";
 
 const card = {
   background: "rgba(255,255,255,0.03)",
@@ -46,18 +46,15 @@ const control = {
 } as const;
 
 export default function ContactNGOs() {
-  const { donations, profile } = useUser();
+  const { donations, profile, contactedNgos, addContactedNgo } = useUser();
   const latestDonation = donations.find((donation) => Number.isFinite(donation.pickupLat) && Number.isFinite(donation.pickupLng)) || donations[0];
   const pickup = Number.isFinite(latestDonation?.pickupLat) && Number.isFinite(latestDonation?.pickupLng)
     ? { lat: latestDonation!.pickupLat as number, lng: latestDonation!.pickupLng as number }
     : null;
-  const quantityKg = parseQuantityKg(latestDonation?.remaining);
 
   const [search, setSearch] = useState("");
   const [radius, setRadius] = useState("10");
   const [sort, setSort] = useState<"nearest" | "rating">("nearest");
-  const [category, setCategory] = useState<"all" | "healthy" | "normal" | "junk">("all");
-  const [quantity, setQuantity] = useState(quantityKg ? String(quantityKg) : "");
   const [ngos, setNgos] = useState<NGO[]>(NGOS);
   const [selected, setSelected] = useState<NGO | null>(null);
   const [modalNgo, setModalNgo] = useState<NGO | null>(null);
@@ -72,10 +69,6 @@ export default function ContactNGOs() {
   const [apiError, setApiError] = useState("");
 
   useEffect(() => {
-    setQuantity(quantityKg ? String(quantityKg) : "");
-  }, [quantityKg]);
-
-  useEffect(() => {
     let cancelled = false;
     setIsLoading(true);
     setApiError("");
@@ -86,8 +79,6 @@ export default function ContactNGOs() {
       lat: activePickup?.lat,
       lng: activePickup?.lng,
       radiusKm: radius === "all" ? undefined : Number(radius),
-      category: category === "all" ? undefined : category,
-      quantityKg: quantity ? Number(quantity) : undefined,
       sort,
       search,
     })
@@ -104,12 +95,11 @@ export default function ContactNGOs() {
     return () => {
       cancelled = true;
     };
-  }, [pickup?.lat, pickup?.lng, userLocation?.lat, userLocation?.lng, radius, category, quantity, sort, search]);
+  }, [pickup?.lat, pickup?.lng, userLocation?.lat, userLocation?.lng, radius, sort, search]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
     const maxRadius = radius === "all" ? undefined : Number(radius);
-    const amount = quantity ? Number(quantity) : undefined;
     const activePickup = userLocation || pickup;
 
     return ngos
@@ -123,13 +113,19 @@ export default function ContactNGOs() {
       })
       .filter((ngo) => {
         const matchesSearch = !q || ngo.name.toLowerCase().includes(q) || ngo.area.toLowerCase().includes(q) || ngo.city.toLowerCase().includes(q);
-        const matchesRadius = maxRadius === undefined || ngo.distanceKm <= maxRadius;
-        const matchesCategory = category === "all" || !ngo.acceptedCategories || ngo.acceptedCategories.includes(category);
-        const matchesQuantity = !amount || !ngo.maxPickupQuantityKg || ngo.maxPickupQuantityKg >= amount;
-        return matchesSearch && matchesRadius && matchesCategory && matchesQuantity;
+        const isContacted = contactedNgos.includes(ngo.id || ngo._id || ngo.name);
+        const matchesRadius = maxRadius === undefined || ngo.distanceKm <= maxRadius || isContacted;
+        return matchesSearch && matchesRadius;
       })
-      .sort((a, b) => (sort === "rating" ? b.rating - a.rating || a.distanceKm - b.distanceKm : a.distanceKm - b.distanceKm));
-  }, [ngos, search, pickup?.lat, pickup?.lng, userLocation?.lat, userLocation?.lng, radius, category, quantity, sort]);
+      .sort((a, b) => {
+        const isAContacted = contactedNgos.includes(a.id || a._id || a.name);
+        const isBContacted = contactedNgos.includes(b.id || b._id || b.name);
+        
+        // Push contacted NGOs slightly higher if sorting by nearest, but respect distance mainly
+        // Or we can just leave the sort as is, since the user didn't ask to prioritize them in the list
+        return sort === "rating" ? b.rating - a.rating || a.distanceKm - b.distanceKm : a.distanceKm - b.distanceKm;
+      });
+  }, [ngos, search, pickup?.lat, pickup?.lng, userLocation?.lat, userLocation?.lng, radius, sort, contactedNgos]);
 
   const activeNgo = selected || filtered[0] || null;
 
@@ -161,6 +157,7 @@ export default function ContactNGOs() {
         message: message.trim() || "We have surplus food ready for pickup. Please contact us to coordinate.",
       });
       setRequestSent(ngoId);
+      addContactedNgo(ngoId);
       setTimeout(() => {
         setRequestSent(null);
         setModalNgo(null);
@@ -207,11 +204,8 @@ export default function ContactNGOs() {
         <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(2.4rem, 4vw, 4rem)", color: "rgba(255, 255, 255, 0.95)", margin: "1rem 0 0.5rem", fontWeight: 700, lineHeight: 1.2 }}>
           NGOs Available For Pickup
         </h1>
-        <p style={{ color: "rgba(255, 255, 255, 0.78)", fontFamily: "'DM Sans', sans-serif", marginBottom: 20, fontSize: "1rem", lineHeight: 1.65 }}>
-          {filtered.length} verified NGOs sorted by pickup proximity from {latestDonation?.pickupAddress || latestDonation?.donorLocation || profile.location || profile.address || "your location"}.
-        </p>
 
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.1fr) minmax(360px, 0.9fr)", gap: 22, alignItems: "stretch" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.1fr) minmax(360px, 0.9fr)", gap: 22, alignItems: "stretch", marginTop: 20 }}>
           <div style={{ display: "grid", gap: 16 }}>
             <NGOMapView
               pickup={userLocation || pickup}
@@ -225,7 +219,7 @@ export default function ContactNGOs() {
           </div>
 
           <div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 150px 150px", gap: 10, marginBottom: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 150px", gap: 10, marginBottom: 10 }}>
               <input
                 type="text"
                 placeholder="Search by NGO, area, city..."
@@ -236,26 +230,15 @@ export default function ContactNGOs() {
               <button style={btnGhost} onClick={handleUseMyLocation} title="Use My Location">
                 📍 Locate Me
               </button>
-              <select value={sort} onChange={(e) => setSort(e.target.value as "nearest" | "rating")} style={control}>
-                <option value="nearest">Nearest first</option>
-                <option value="rating">Top rated</option>
-              </select>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10, marginBottom: 14 }}>
               <select value={radius} onChange={(e) => setRadius(e.target.value)} style={control}>
                 <option value="2">Within 2 km</option>
                 <option value="5">Within 5 km</option>
                 <option value="10">Within 10 km</option>
                 <option value="all">Any distance</option>
               </select>
-              <select value={category} onChange={(e) => setCategory(e.target.value as any)} style={control}>
-                <option value="all">All food</option>
-                <option value="healthy">Healthy</option>
-                <option value="normal">Normal</option>
-                <option value="junk">Junk</option>
-              </select>
-              <input type="number" min="0" placeholder="Kg" value={quantity} onChange={(e) => setQuantity(e.target.value)} style={control} />
             </div>
 
             {isLoading && <p style={{ color: "rgba(255, 255, 255, 0.78)", fontFamily: "'DM Sans', sans-serif", fontSize: "1rem", lineHeight: 1.65 }}>Loading nearby NGOs...</p>}
@@ -265,7 +248,7 @@ export default function ContactNGOs() {
             <div style={{ display: "grid", gap: 14, maxHeight: 760, overflowY: "auto", paddingRight: 4 }}>
               {!filtered.length && !isLoading && (
                 <div style={{ ...card, color: "rgba(255, 255, 255, 0.78)", fontFamily: "'DM Sans', sans-serif", fontSize: "1rem", lineHeight: 1.65 }}>
-                  No NGOs match the current filters. Try increasing the radius or clearing category and quantity filters.
+                  No NGOs match the current filters. Try increasing the radius or searching a different area.
                 </div>
               )}
               {filtered.map((ngo) => {
@@ -273,9 +256,15 @@ export default function ContactNGOs() {
                 return (
                   <div key={ngo.id || ngo._id || ngo.name} style={{ ...card, borderColor: isActive ? "rgba(255,87,34,0.55)" : "rgba(255,255,255,0.08)" }}>
                     <div style={{ display: "flex", gap: 14 }}>
-                      <img src={ngo.image} alt={ngo.name} style={{ width: 96, height: 96, objectFit: "cover", borderRadius: 10, flex: "0 0 auto" }} />
                       <div style={{ minWidth: 0 }}>
-                        <h3 style={{ fontFamily: "'Playfair Display', serif", color: "rgba(255, 255, 255, 0.95)", fontSize: "1.25rem", margin: "0 0 5px", fontWeight: 600, lineHeight: 1.4 }}>{ngo.name}</h3>
+                        <h3 style={{ fontFamily: "'Playfair Display', serif", color: "rgba(255, 255, 255, 0.95)", fontSize: "1.25rem", margin: "0 0 5px", fontWeight: 600, lineHeight: 1.4 }}>
+                          {ngo.name}
+                          {contactedNgos.includes(ngo.id || ngo._id || ngo.name) && (
+                            <span style={{ fontSize: "0.75rem", background: "rgba(74, 222, 128, 0.15)", color: "#4ade80", padding: "2px 8px", borderRadius: 12, marginLeft: 10, verticalAlign: "middle", fontWeight: 500 }}>
+                              Contacted
+                            </span>
+                          )}
+                        </h3>
                         <p style={{ color: "rgba(255, 255, 255, 0.78)", fontFamily: "'DM Sans', sans-serif", fontSize: "1rem", lineHeight: 1.65, margin: "0 0 8px" }}>
                           {ngo.address || `${ngo.area}, ${ngo.city}`} · {ngo.phone}
                         </p>
@@ -283,15 +272,12 @@ export default function ContactNGOs() {
                           <span>{ngo.distanceKm.toFixed(1)} km</span>
                           <span style={{ color: "rgba(255, 255, 255, 0.72)" }}>·</span>
                           <span>{ngo.estimatedTravelTime}</span>
-                          <span style={{ color: "rgba(255, 255, 255, 0.72)" }}>·</span>
-                          <span>{ngo.rating} rating</span>
                         </div>
                       </div>
                     </div>
                     <p style={{ color: "rgba(255, 255, 255, 0.78)", fontFamily: "'DM Sans', sans-serif", fontSize: "1rem", lineHeight: 1.65, margin: "1rem 0" }}>{ngo.description}</p>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                       <button style={btn} onClick={() => handleSelectNgo(ngo)}>View on Map</button>
-                      <button style={btnGhost} onClick={() => { handleSelectNgo(ngo); setRouteTarget(ngo); }}>Get Route</button>
                       <button style={btnGhost} onClick={() => { setSelected(ngo); setModalNgo(ngo); }}>Contact</button>
                     </div>
                   </div>
@@ -311,9 +297,15 @@ export default function ContactNGOs() {
             background: "#1a1714", borderRadius: 18, maxWidth: 600, width: "100%",
             border: "1px solid rgba(255,255,255,0.1)", overflow: "hidden",
           }}>
-            <img src={modalNgo.image} alt={modalNgo.name} style={{ width: "100%", height: 190, objectFit: "cover" }} />
             <div style={{ padding: "2rem" }}>
-              <h2 style={{ fontFamily: "'Playfair Display', serif", color: "rgba(255, 255, 255, 0.95)", fontSize: "1.8rem", margin: "0 0 6px", fontWeight: 700, lineHeight: 1.2 }}>{modalNgo.name}</h2>
+              <h2 style={{ fontFamily: "'Playfair Display', serif", color: "rgba(255, 255, 255, 0.95)", fontSize: "1.8rem", margin: "0 0 6px", fontWeight: 700, lineHeight: 1.2 }}>
+                {modalNgo.name}
+                {contactedNgos.includes(modalNgo.id || modalNgo._id || modalNgo.name) && (
+                  <span style={{ fontSize: "0.85rem", background: "rgba(74, 222, 128, 0.15)", color: "#4ade80", padding: "4px 10px", borderRadius: 14, marginLeft: 12, verticalAlign: "middle", fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}>
+                    Previously Contacted
+                  </span>
+                )}
+              </h2>
               <p style={{ color: "rgba(255, 255, 255, 0.78)", fontFamily: "'DM Sans', sans-serif", fontSize: "1rem", margin: "0 0 18px", lineHeight: 1.65 }}>{modalNgo.cause}</p>
 
               <div style={{ display: "grid", gap: 10, fontFamily: "'DM Sans', sans-serif", fontSize: "1rem", color: "rgba(255, 255, 255, 0.95)", marginBottom: 18 }}>
@@ -344,7 +336,6 @@ export default function ContactNGOs() {
               ) : (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
                   <button style={{ ...btn, opacity: isSendingRequest ? 0.7 : 1 }} onClick={sendRequest} disabled={isSendingRequest}>{isSendingRequest ? "Sending..." : "Send Contact Request"}</button>
-                  <button style={btnGhost} onClick={() => { setSelected(modalNgo); setRouteTarget(modalNgo); setModalNgo(null); }}>Get Route</button>
                   <button style={btnGhost} onClick={() => setModalNgo(null)}>Close</button>
                 </div>
               )}

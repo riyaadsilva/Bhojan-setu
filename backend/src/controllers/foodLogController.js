@@ -100,7 +100,7 @@ export const getFoodLogById = asyncHandler(async (req, res) => {
 
 export const deleteFoodLog = asyncHandler(async (req, res) => {
   logger.debug("food_logs:delete_attempt", { requestId: req.requestId, foodLogId: req.params.id });
-  const log = await FoodLog.findByIdAndDelete(req.params.id);
+  const log = await FoodLog.findById(req.params.id);
 
   if (!log) {
     const error = new Error("Food log not found.");
@@ -108,6 +108,14 @@ export const deleteFoodLog = asyncHandler(async (req, res) => {
     throw error;
   }
 
+  // Ownership check — only the creator can delete their own log
+  if (log.user && log.user.toString() !== req.user._id.toString()) {
+    const error = new Error("You do not have permission to delete this food log.");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  await log.deleteOne();
   logger.info("food_logs:delete_success", { requestId: req.requestId, foodLogId: log._id });
   res.json({ success: true, data: log });
 });

@@ -1,4 +1,5 @@
 import User from "../models/User.js";
+import NGO from "../models/NGO.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { logger } from "../utils/logger.js";
 import { signToken } from "../utils/token.js";
@@ -37,6 +38,25 @@ export const register = asyncHandler(async (req, res) => {
     password,
     profile: { ...profile, email },
   });
+
+  if (role === "ngo") {
+    try {
+      await NGO.create({
+        name: profile.ngoName || profile.name || "Unnamed NGO",
+        area: profile.area || "Unknown",
+        city: profile.location || profile.area || "Unknown",
+        phone: profile.phone || "Unknown",
+        email: email,
+        cause: profile.cause,
+        website: profile.website,
+        lat: profile.lat ? Number(profile.lat) : undefined,
+        lng: profile.lng ? Number(profile.lng) : undefined,
+      });
+      logger.info("auth:ngo_profile_created", { requestId: req.requestId, email });
+    } catch (err) {
+      logger.error("auth:ngo_profile_creation_failed", { requestId: req.requestId, email, error: err.message });
+    }
+  }
 
   logger.info("auth:register_success", { requestId: req.requestId, userId: user._id, role: user.role, email: user.email });
   res.status(201).json({

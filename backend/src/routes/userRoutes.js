@@ -4,8 +4,10 @@ import { protect } from "../middleware/authMiddleware.js";
 
 const router = Router();
 
-router.get("/", getUsers);
-router.get("/:id", getUserById);
+// GET /users — requires auth; controller filters to self unless role is explicitly queried
+router.get("/", protect, getUsers);
+// GET /users/:id — requires auth; controller enforces self-only via userController
+router.get("/:id", protect, getUserById);
 router.patch("/:id", protect, updateUser);
 
 export default router;

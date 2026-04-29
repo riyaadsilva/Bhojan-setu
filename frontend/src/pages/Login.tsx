@@ -143,14 +143,47 @@ export default function Login() {
             fields.map((f) => (
               <div className="login-field" key={f.key}>
                 <label className="login-label">{f.label}</label>
-                <input
-                  className="login-input"
-                  type={f.type || "text"}
-                  placeholder={f.placeholder}
-                  value={form[f.key] || ""}
-                  onChange={(e) => handleChange(f.key, e.target.value)}
-                  required
-                />
+                <div style={{ display: "flex", gap: 10 }}>
+                  <input
+                    className="login-input"
+                    type={f.type || "text"}
+                    placeholder={f.placeholder}
+                    value={form[f.key] || ""}
+                    onChange={(e) => handleChange(f.key, e.target.value)}
+                    required
+                    style={{ flex: 1 }}
+                  />
+                  {role === "ngo" && f.key === "area" && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if ("geolocation" in navigator) {
+                          navigator.geolocation.getCurrentPosition(
+                            (position) => {
+                              handleChange("lat", String(position.coords.latitude));
+                              handleChange("lng", String(position.coords.longitude));
+                            },
+                            () => alert("Failed to get location.")
+                          );
+                        } else {
+                          alert("Geolocation not supported.");
+                        }
+                      }}
+                      style={{
+                        background: form.lat && form.lng ? "rgba(74, 222, 128, 0.15)" : "rgba(255,87,34,0.15)",
+                        color: form.lat && form.lng ? "#4ade80" : "#FF5722",
+                        border: form.lat && form.lng ? "1px solid rgba(74, 222, 128, 0.3)" : "1px solid rgba(255,87,34,0.3)",
+                        padding: "0 15px",
+                        borderRadius: "8px",
+                        cursor: "pointer",
+                        whiteSpace: "nowrap",
+                        fontFamily: "'DM Sans', sans-serif"
+                      }}
+                    >
+                      {form.lat && form.lng ? "📍 Captured" : "📍 Locate Me"}
+                    </button>
+                  )}
+                </div>
               </div>
             ))
           )}

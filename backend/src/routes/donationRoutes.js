@@ -22,6 +22,7 @@ router.post("/:id/accept", protect, requireRole("ngo"), acceptDonationRequest);
 router.post("/:id/deny", protect, requireRole("ngo"), denyDonationRequest);
 router.patch("/:id/fulfillment", protect, requireRole("ngo"), setDonationFulfillmentType);
 router.post("/:id/complete", protect, requireRole("ngo"), completeDonationRequest);
-router.patch("/:id/rating", rateDonation);
+// Rating is used by ConnectedRestaurants.tsx — protected so only authenticated users can rate
+router.patch("/:id/rating", protect, requireRole("individual", "restaurant"), rateDonation);
 
 export default router;

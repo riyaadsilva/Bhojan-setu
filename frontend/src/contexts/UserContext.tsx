@@ -52,6 +52,7 @@ interface UserState {
   isLoggedIn: boolean;
   authReady: boolean;
   donations: FoodDonation[];
+  contactedNgos: string[];
 }
 
 interface UserContextType extends UserState {
@@ -59,12 +60,14 @@ interface UserContextType extends UserState {
   logout: () => void;
   addDonation: (d: Omit<FoodDonation, "id" | "createdAt" | "status">) => void;
   updateDonation: (id: string, patch: Partial<FoodDonation>) => void;
+  addContactedNgo: (id: string) => void;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 const STORAGE_KEY = "bhojansetu_user";
 const DONATIONS_KEY = "bhojansetu_donations";
+const CONTACTED_NGOS_KEY = "bhojansetu_contacted_ngos";
 
 const seedDonations = (): FoodDonation[] => [
   {
@@ -159,15 +162,17 @@ export function UserProvider({ children }: { children: ReactNode }) {
         ...base,
         authReady: false,
         donations: donations ? JSON.parse(donations) : seedDonations(),
+        contactedNgos: localStorage.getItem(CONTACTED_NGOS_KEY) ? JSON.parse(localStorage.getItem(CONTACTED_NGOS_KEY)!) : [],
       };
     } catch {}
-    return { role: null, profile: {}, isLoggedIn: false, authReady: false, donations: seedDonations() };
+    return { role: null, profile: {}, isLoggedIn: false, authReady: false, donations: seedDonations(), contactedNgos: [] };
   });
 
   useEffect(() => {
-    const { donations, ...rest } = state;
+    const { donations, contactedNgos, ...rest } = state;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(rest));
     localStorage.setItem(DONATIONS_KEY, JSON.stringify(donations));
+    localStorage.setItem(CONTACTED_NGOS_KEY, JSON.stringify(contactedNgos));
   }, [state]);
 
   useEffect(() => {
@@ -219,7 +224,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setState((s) => ({
         ...s,
         role: payload.user.role,
-        profile: { ...payload.user.profile, id: payload.user.id, email: payload.user.email } || { ...profile, id: payload.user.id, email: payload.user.email },
+        profile: { ...(payload.user.profile || profile), id: payload.user.id, email: payload.user.email },
         isLoggedIn: true,
         authReady: true,
       }));
@@ -260,8 +265,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }));
   };
 
+  const addContactedNgo: UserContextType["addContactedNgo"] = (id) => {
+    setState((s) => ({
+      ...s,
+      contactedNgos: s.contactedNgos.includes(id) ? s.contactedNgos : [...s.contactedNgos, id],
+    }));
+  };
+
   return (
-    <UserContext.Provider value={{ ...state, login, logout, addDonation, updateDonation }}>
+    <UserContext.Provider value={{ ...state, login, logout, addDonation, updateDonation, addContactedNgo }}>
       {children}
     </UserContext.Provider>
   );

@@ -22,7 +22,7 @@ const btn = {
 };
 
 export default function IndividualDonateForm() {
-  const { profile, addDonation } = useUser();
+  const { profile, role, addDonation } = useUser();
   const [form, setForm] = useState({
     totalPrepared: "", remaining: "", category: "normal" as "junk" | "normal" | "healthy",
     description: "",
@@ -53,10 +53,10 @@ export default function IndividualDonateForm() {
       return;
     }
 
-    const donorLocation = pickupLocation.address || profile.location || "Pickup address pending";
+    const donorLocation = pickupLocation.address || profile.location || profile.address || "Pickup address pending";
     const payload = {
-      donorType: "individual" as const,
-      donorName: profile.name || "Anonymous",
+      donorType: role === "restaurant" ? "restaurant" as const : "individual" as const,
+      donorName: profile.name || profile.businessName || "Anonymous",
       donorPhone: profile.phone || "Not provided",
       donorLocation,
       pickupAddress: donorLocation,
