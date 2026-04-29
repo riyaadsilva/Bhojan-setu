@@ -261,3 +261,59 @@ export async function fetchImpactStories() {
   const payload = await apiFetch<{ data: any[] }>("/impact-stories");
   return payload.data;
 }
+
+// ─── AI endpoints ─────────────────────────────────────────────────────────────
+
+export async function aiValidateImage(imageBase64: string) {
+  const payload = await apiFetch<{ data: any }>("/ai/validate-image", {
+    method: "POST",
+    body: JSON.stringify({ imageBase64 }),
+  });
+  return payload.data as {
+    validFood: boolean;
+    confidence: number;
+    labels: { label: string; score: number }[];
+    skipped?: boolean;
+    loading?: boolean;
+  };
+}
+
+export async function aiSuggestCategory(description: string) {
+  const payload = await apiFetch<{ data: any }>("/ai/suggest-category", {
+    method: "POST",
+    body: JSON.stringify({ description }),
+  });
+  return payload.data as {
+    foodType: "veg" | "non-veg" | "vegan" | "unknown";
+    healthCategory: "healthy" | "normal" | "junk";
+    suggestedCategories: string[];
+    allergens: string[];
+    reasoning: string;
+  };
+}
+
+export async function aiChat(message: string, userRole?: string) {
+  const payload = await apiFetch<{ data: any }>("/ai/chat", {
+    method: "POST",
+    body: JSON.stringify({ message, userRole }),
+  });
+  return payload.data as { reply: string };
+}
+
+export async function aiDemandPrediction() {
+  const payload = await apiFetch<{ data: any }>("/ai/demand-prediction");
+  return payload.data as {
+    peakHours: { hour: number; label: string; donationCount: number }[];
+    highDemandZones: { zone: string; donationCount: number }[];
+    totalAnalysed: number;
+  };
+}
+
+export async function aiRecommendNGOs(donation: Record<string, unknown>, ngos: any[]) {
+  const payload = await apiFetch<{ data: any[] }>("/ai/recommend-ngos", {
+    method: "POST",
+    body: JSON.stringify({ donation, ngos }),
+  });
+  return payload.data;
+}
+

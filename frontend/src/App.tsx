@@ -15,6 +15,7 @@ import ImpactStories from "./pages/ImpactStories";
 import Analytics from "./pages/Analytics";
 import ConnectedRestaurants from "./pages/ConnectedRestaurants";
 import NotFound from "./pages/NotFound";
+import AIChatWidget from "./components/AIChatWidget";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +39,7 @@ const App = () => (
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
+      <AIChatWidget />
     </UserProvider>
   </QueryClientProvider>
 );

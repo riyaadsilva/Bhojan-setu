@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useUser } from "../contexts/UserContext";
 import {
+  aiDemandPrediction,
   fetchIndividualWasteAnalytics,
   fetchWasteAnalyticsDaily,
   fetchWasteAnalyticsMonthly,
@@ -124,6 +125,11 @@ export default function AnalyticsChart() {
   const [analytics, setAnalytics] = useState<any>(role === "individual" ? individualFallback : restaurantFallback.weekly);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [aiInsights, setAiInsights] = useState<{
+    peakHours: { hour: number; label: string; donationCount: number }[];
+    highDemandZones: { zone: string; donationCount: number }[];
+    totalAnalysed: number;
+  } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -162,6 +168,13 @@ export default function AnalyticsChart() {
       cancelled = true;
     };
   }, [period, role]);
+
+  // ── AI Demand Prediction (non-blocking) ───────────────────────────────────
+  useEffect(() => {
+    aiDemandPrediction()
+      .then((data) => setAiInsights(data))
+      .catch(() => { /* silently skip if backend unavailable */ });
+  }, []);
 
   const summaryCards = useMemo(() => {
     const summary = analytics?.summary || {};
@@ -363,6 +376,96 @@ export default function AnalyticsChart() {
             </div>
           </div>
         </div>
+
+        {/* ── AI Demand Insights ────────────────────────────────────────── */}
+        {aiInsights && (aiInsights.peakHours.length > 0 || aiInsights.highDemandZones.length > 0) && (
+          <div style={{ marginTop: 28 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+              <span style={{ fontSize: "1.1rem" }}>🤖</span>
+              <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "0.78rem", letterSpacing: "0.16em", color: "rgba(255,255,255,0.55)", textTransform: "uppercase", fontWeight: 600 }}>
+                AI Demand Insights — based on {aiInsights.totalAnalysed} donations
+              </span>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 18 }}>
+
+              {/* Peak Donation Hours */}
+              {aiInsights.peakHours.length > 0 && (
+                <div style={{ ...cardStyle, border: "1px solid rgba(255,87,34,0.2)", background: "rgba(255,87,34,0.04)" }}>
+                  <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "0.95rem", color: "rgba(255,255,255,0.72)", marginBottom: 14, fontWeight: 600 }}>
+                    ⏰ Peak Donation Hours
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {aiInsights.peakHours.map((h, i) => (
+                      <div key={h.hour} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <span style={{
+                          fontFamily: "'Playfair Display', serif",
+                          fontSize: "1.4rem",
+                          fontWeight: 700,
+                          color: i === 0 ? "#FF5722" : "rgba(255,255,255,0.85)",
+                          minWidth: 80,
+                        }}>
+                          {h.label}
+                        </span>
+                        <div style={{ flex: 1, height: 6, background: "rgba(255,255,255,0.07)", borderRadius: 99, overflow: "hidden" }}>
+                          <div style={{
+                            height: "100%",
+                            borderRadius: 99,
+                            background: i === 0 ? "#FF5722" : "rgba(255,87,34,0.45)",
+                            width: `${Math.round((h.donationCount / (aiInsights.peakHours[0]?.donationCount || 1)) * 100)}%`,
+                          }} />
+                        </div>
+                        <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "0.84rem", color: "rgba(255,255,255,0.5)", minWidth: 60, textAlign: "right" }}>
+                          {h.donationCount} donation{h.donationCount !== 1 ? "s" : ""}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* High Demand Zones */}
+              {aiInsights.highDemandZones.length > 0 && (
+                <div style={{ ...cardStyle, border: "1px solid rgba(99,102,241,0.2)", background: "rgba(99,102,241,0.04)" }}>
+                  <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "0.95rem", color: "rgba(255,255,255,0.72)", marginBottom: 14, fontWeight: 600 }}>
+                    📍 High Demand Zones
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {aiInsights.highDemandZones.map((z, i) => (
+                      <div key={z.zone} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <span style={{
+                          fontFamily: "'DM Sans', sans-serif",
+                          fontSize: "0.95rem",
+                          fontWeight: 600,
+                          color: i === 0 ? "#818cf8" : "rgba(255,255,255,0.8)",
+                          flex: 1,
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}>
+                          {z.zone}
+                        </span>
+                        <div style={{ flex: 1, height: 6, background: "rgba(255,255,255,0.07)", borderRadius: 99, overflow: "hidden" }}>
+                          <div style={{
+                            height: "100%",
+                            borderRadius: 99,
+                            background: i === 0 ? "#818cf8" : "rgba(99,102,241,0.45)",
+                            width: `${Math.round((z.donationCount / (aiInsights.highDemandZones[0]?.donationCount || 1)) * 100)}%`,
+                          }} />
+                        </div>
+                        <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "0.84rem", color: "rgba(255,255,255,0.5)", minWidth: 60, textAlign: "right" }}>
+                          {z.donationCount} donation{z.donationCount !== 1 ? "s" : ""}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );

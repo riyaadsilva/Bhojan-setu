@@ -1,6 +1,7 @@
 import { Router } from "express";
 import analyticsRoutes from "./analyticsRoutes.js";
 import authRoutes from "./authRoutes.js";
+import aiRoutes from "./aiRoutes.js";
 import { logClientDebug } from "../controllers/debugController.js";
 import contactRequestRoutes from "./contactRequestRoutes.js";
 import donationRoutes from "./donationRoutes.js";
@@ -30,5 +31,6 @@ router.use("/ngos", ngoRoutes);
 router.use("/contact-requests", contactRequestRoutes);
 router.use("/impact-stories", impactStoryRoutes);
 router.use("/analytics", analyticsRoutes);
+router.use("/ai", aiRoutes);
 
 export default router;

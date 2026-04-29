@@ -4,7 +4,7 @@ import NGOMapView from "../components/NGOMapView";
 import RoutePanel from "../components/RoutePanel";
 import { useUser } from "../contexts/UserContext";
 import { NGOS, NGO } from "../data/ngos";
-import { createContactRequest, fetchNearbyNGOs } from "../services/api";
+import { createContactRequest, fetchNearbyNGOs, aiRecommendNGOs } from "../services/api";
 import { estimateEta, haversineKm, RouteInfo } from "../services/maps";
 
 const card = {
@@ -67,6 +67,7 @@ export default function ContactNGOs() {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState("");
+  const [aiRankedNgos, setAiRankedNgos] = useState<NGO[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -136,6 +137,17 @@ export default function ContactNGOs() {
       setRouteInfo(null);
     }
   }, [filtered, selected]);
+
+  // ── AI NGO Ranking (non-blocking, updates when filtered list settles) ────────
+  useEffect(() => {
+    if (filtered.length === 0) return;
+    const donation = latestDonation
+      ? { category: latestDonation.category, remaining: latestDonation.remaining }
+      : { category: "normal", remaining: "" };
+    aiRecommendNGOs(donation as Record<string, unknown>, filtered)
+      .then((ranked) => setAiRankedNgos((ranked as NGO[]).slice(0, 3)))
+      .catch(() => { /* silently skip if backend unavailable */ });
+  }, [filtered.length]);
 
   const sendRequest = async () => {
     if (!modalNgo) return;
@@ -244,6 +256,64 @@ export default function ContactNGOs() {
             {isLoading && <p style={{ color: "rgba(255, 255, 255, 0.78)", fontFamily: "'DM Sans', sans-serif", fontSize: "1rem", lineHeight: 1.65 }}>Loading nearby NGOs...</p>}
             {apiError && <p style={{ color: "#ff6b6b", fontFamily: "'DM Sans', sans-serif", fontSize: "1rem", lineHeight: 1.65 }}>{apiError}</p>}
             {!(userLocation || pickup) && <p style={{ color: "#ff6b6b", fontFamily: "'DM Sans', sans-serif", fontSize: "1rem", lineHeight: 1.65 }}>No pickup coordinates found yet. Click 'Locate Me' or add a pinned donation location for live distance and route accuracy.</p>}
+
+            {/* ── AI Recommended NGOs ────────────────────────────────────── */}
+            {aiRankedNgos.length > 0 && (
+              <div style={{ marginBottom: 18 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                  <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "0.75rem", letterSpacing: "0.15em", color: "rgba(255,255,255,0.5)", textTransform: "uppercase", fontWeight: 600 }}>
+                    Recommended NGOs
+                  </span>
+                </div>
+                <div style={{ display: "grid", gap: 10 }}>
+                  {aiRankedNgos.map((ngo, i) => (
+                    <div
+                      key={`ai-${ngo.id || ngo._id || ngo.name}`}
+                      onClick={() => handleSelectNgo(ngo)}
+                      style={{
+                        ...card,
+                        border: "1px solid rgba(255,87,34,0.3)",
+                        background: "rgba(255,87,34,0.05)",
+                        cursor: "pointer",
+                        padding: "1.2rem 1.5rem",
+                        transition: "border-color 0.2s",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
+                            <span style={{
+                              fontFamily: "'Playfair Display', serif",
+                              color: "rgba(255,255,255,0.95)",
+                              fontSize: "1.05rem",
+                              fontWeight: 600,
+                            }}>
+                              {ngo.name}
+                            </span>
+                            <span style={{ fontSize: "0.72rem", background: "rgba(255,87,34,0.18)", color: "#FF5722", padding: "2px 8px", borderRadius: 99, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", whiteSpace: "nowrap" }}>
+                              {i === 0 ? "Best Pick" : `#${i + 1} Pick`}
+                            </span>
+                          </div>
+                          <p style={{ color: "rgba(255,255,255,0.6)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.88rem", margin: 0, lineHeight: 1.5 }}>
+                            {ngo.address || `${ngo.area}, ${ngo.city}`}
+                          </p>
+                        </div>
+                        <div style={{ textAlign: "right", flexShrink: 0 }}>
+                          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "1.15rem", fontWeight: 700, color: "#FF5722" }}>
+                            {ngo.distanceKm?.toFixed(1)} km
+                          </div>
+                          <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "0.78rem", color: "rgba(255,255,255,0.45)", marginTop: 2 }}>
+                            {ngo.estimatedTravelTime}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ height: 1, background: "rgba(255,255,255,0.07)", marginTop: 18, marginBottom: 4 }} />
+                <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "0.75rem", color: "rgba(255,255,255,0.35)" }}>All NGOs below</span>
+              </div>
+            )}
 
             <div style={{ display: "grid", gap: 14, maxHeight: 760, overflowY: "auto", paddingRight: 4 }}>
               {!filtered.length && !isLoading && (

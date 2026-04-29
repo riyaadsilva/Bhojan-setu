@@ -12,6 +12,10 @@ const envSchema = z.object({
   JWT_SECRET: z.string().default("replace-with-a-long-random-secret"),
   JWT_EXPIRES_IN: z.string().default("7d"),
   DEBUG_LOGS: z.string().optional(),
+  HUGGINGFACE_API_KEY: z.string().optional(),
+  HUGGINGFACE_API_URL: z.string().default("https://api-inference.huggingface.co/models/nateraw/food"),
+  GROQ_API_KEY: z.string().optional(),
+  GROQ_API_URL: z.string().default("https://api.groq.com/openai/v1/chat/completions"),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);
@@ -32,4 +36,8 @@ export const env = {
   jwtSecret: validatedEnv.JWT_SECRET,
   jwtExpiresIn: validatedEnv.JWT_EXPIRES_IN,
   debugLogs: validatedEnv.DEBUG_LOGS === "true" || validatedEnv.DEBUG_LOGS === "1",
+  huggingfaceApiKey: validatedEnv.HUGGINGFACE_API_KEY || "",
+  huggingfaceApiUrl: validatedEnv.HUGGINGFACE_API_URL,
+  groqApiKey: validatedEnv.GROQ_API_KEY || "",
+  groqApiUrl: validatedEnv.GROQ_API_URL,
 };

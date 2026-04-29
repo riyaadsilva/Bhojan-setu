@@ -141,6 +141,27 @@ const donationSchema = new mongoose.Schema(
       },
       geofenceConfirmedAt: Date,
     },
+
+    // ── Extended food metadata (optional, backward-compatible) ─────────────
+    preparedAt: Date,
+    bestBefore: Date,
+    storageCondition: {
+      type: String,
+      enum: ["room_temp", "refrigerated", "frozen"],
+    },
+    ingredients: String,
+    allergens: {
+      type: [String],
+      default: [],
+    },
+    foodType: {
+      type: String,
+      enum: ["veg", "non-veg", "vegan", "unknown"],
+    },
+    foodCategories: {
+      type: [String],
+      default: [],
+    },
   },
   { timestamps: true }
 );

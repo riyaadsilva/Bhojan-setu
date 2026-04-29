@@ -93,6 +93,14 @@ export const createDonation = asyncHandler(async (req, res) => {
     photo,
     pickupTime,
     donor,
+    // Extended fields
+    preparedAt,
+    bestBefore,
+    storageCondition,
+    ingredients,
+    allergens,
+    foodType,
+    foodCategories,
   } = req.body;
 
   const normalizedLat = pickupLat === undefined || pickupLat === "" ? undefined : Number(pickupLat);
@@ -136,6 +144,14 @@ export const createDonation = asyncHandler(async (req, res) => {
     photo,
     pickupTime,
     pickupWorkflow: { status: "posted" },
+    // Extended fields
+    preparedAt,
+    bestBefore,
+    storageCondition,
+    ingredients,
+    allergens,
+    foodType,
+    foodCategories,
   });
 
   logger.info("donations:create_success", {
